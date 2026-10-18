@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sudokubot"
+version = "1.0.0"
+description = "SudokuBot : serveur cerveau (Termux) pour jouer au sudoku via un agent AutoJs6"
+requires-python = ">=3.9"
+dependencies = ["numpy", "Pillow"]
+
+[tool.setuptools.packages.find]
+where = ["server"]
+
+# Permet `pip install -e .` (fix definitif du "No module named sudokubot")
+# + `pytest` sans PYTHONPATH (pytest >= 7 lit `pythonpath`).
+[tool.pytest.ini_options]
+pythonpath = ["server", "."]
+testpaths = ["tests"]

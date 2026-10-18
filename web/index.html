@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SudokuBot — Pilotage</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<aside id="rail">
+  <div class="brand"><span class="eyebrow">Termux · AutoJs6</span><b>SUDOKU<br>BOT.</b></div>
+  <nav id="tabs">
+    <button data-tab="pilot" class="on"><svg viewBox="0 0 24 24"><path d="M5 4l14 8-14 8z"/></svg><span>Pilotage</span></button>
+    <button data-tab="speed"><svg viewBox="0 0 24 24"><path d="M4 18a8 8 0 1 1 16 0M12 18l4-6"/></svg><span>Vitesse</span></button>
+    <button data-tab="settings"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Réglages</span></button>
+    <button data-tab="logs"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span>Journal</span></button>
+    <button data-tab="analyse"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16"/><path d="M4 10h16M4 15h16M10 4v16M15 4v16"/></svg><span>Analyse</span></button>
+    <button data-tab="spots"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><span>Emplacements</span></button>
+  </nav>
+</aside>
+
+<main>
+  <section id="pilot" class="tab on">
+    <span class="eyebrow">Tableau de bord</span>
+    <h1>Pilotage</h1>
+    <div class="kpis">
+      <div class="kpi"><span>État</span><b id="kState">—</b></div>
+      <div class="kpi"><span>Parties</span><b id="kGames">0</b></div>
+      <div class="kpi"><span>Coups</span><b id="kMoves">0</b></div>
+      <div class="kpi lime"><span>Vitesse</span><b id="kSpeed">—</b></div>
+    </div>
+    <div class="card">
+      <p id="msg" class="msg">Connexion au serveur…</p>
+      <div class="row">
+        <button class="btn violet" data-act="start">▶ Démarrer</button>
+        <button class="btn" data-act="pause">❚❚ Pause</button>
+        <button class="btn danger" data-act="stop">■ Stop</button>
+      </div>
+      <label class="switch"><input type="checkbox" id="testMode"><i></i> Mode test (analyse seule, aucun appui)</label>
+    </div>
+    <div class="card">
+      <h3>Agent AutoJs6</h3>
+      <dl id="agentInfo"></dl>
+    </div>
+    <div class="card"><h3>Dernière analyse</h3><img id="ovMini" class="shot" alt=""></div>
+  </section>
+
+  <section id="speed" class="tab">
+    <span class="eyebrow">Cadence</span>
+    <h1>Vitesse</h1>
+    <div class="card"><h3>Palier actif</h3><div id="choices" class="seg"></div>
+      <p class="hint">« Auto » démarre à <i>moyen</i>, monte si le téléphone suit (aucun retard, aucun coup raté), redescend sinon. À partir de <i>moyen</i>, les coups partent en salves : une seule capture toutes les X cases.</p></div>
+    <div class="card"><h3>Paliers (cliquer pour éditer)</h3><div id="levels" class="levels"></div></div>
+    <div class="card"><h3>Mesures récentes</h3><table id="perf"><thead><tr><th>Palier</th><th>Appuis</th><th>Retard</th><th>Ratés</th><th>Capture</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="settings" class="tab">
+    <span class="eyebrow">Tout est ajustable</span>
+    <h1>Réglages</h1>
+    <div class="card">
+      <h3>Rapides</h3>
+      <label class="field">Ordre de remplissage
+        <select id="order"><option>human</option><option>rows</option><option>random</option><option>digit</option><option>box</option></select></label>
+      <label class="field">Taille forcée (vide = auto)<input id="forceSize" type="number" min="4" max="16"></label>
+      <label class="field">Blocs forcés « lignes x colonnes » (vide = auto)<input id="forceBox" placeholder="ex : 2x3"></label>
+      <label class="field">Dispersion des appuis (σ, fraction de case)<input id="jitter" type="range" min="0" max="0.3" step="0.01"><output id="jitterOut"></output></label>
+      <label class="field">Délai avant détection après lancement partie — game.detect_delay_ms (ms)<input id="detectDelay" type="number" min="0" max="15000" step="100"><span class="hint">Temps que le niveau charge : attendu après appui sur « Débutant » avant de chercher la grille. Augmente si la grille met du temps à apparaître, diminue pour enchaîner plus vite (ex : 2500 = 2,5 s).</span></label>
+      <label class="field">Recherche menus : délai max — menus.find_timeout_s (s)<input id="findTimeout" type="number" min="3" max="25" step="1"><span class="hint">Durée max de recherche d'un bouton. L'accessibilité répond en &lt; 1 s si présent ; au-delà, 1 seul OCR (~2-4 s). Plus bas = plus rapide.</span></label>
+      <label class="switch"><input type="checkbox" id="fusedScan"><i></i> Balayage menus fusionné (1 seul OCR, rapide)</label>
+      <div class="row"><button class="btn violet" id="saveQuick">Enregistrer</button>
+        <button class="btn" data-act="reset_keypad">Re-détecter le pavé</button>
+        <button class="btn danger" data-act="forget_templates">Oublier les gabarits</button></div>
+    </div>
+    <div class="card">
+      <h3>config.json complet</h3>
+      <textarea id="cfgText" spellcheck="false"></textarea>
+      <div class="row"><button class="btn violet" id="saveCfg">Enregistrer le JSON</button><button class="btn" id="reloadCfg">Recharger</button></div>
+    </div>
+  </section>
+
+  <section id="logs" class="tab">
+    <span class="eyebrow">Temps réel</span>
+    <h1>Journal</h1>
+    <pre id="logBox"></pre>
+  </section>
+
+  <section id="analyse" class="tab">
+    <span class="eyebrow">Vision</span>
+    <h1>Analyse</h1>
+    <div class="card">
+      <div class="legend"><i class="b"></i>grille / blocs <i class="g"></i>chiffre lu sûr <i class="o"></i>incertain <i class="m"></i>solution · appui · touche</div>
+      <img id="overlay" class="shot click" alt="aucune image">
+      <p class="hint">Touchez l'image pour lire une position (fraction d'écran) et l'utiliser comme coordonnée de secours.</p>
+      <p id="pickOut" class="mono">x = — · y = —</p>
+      <div class="row">
+        <button class="btn" data-pick="nouvelle_partie">→ secours « Nouvelle partie »</button>
+        <button class="btn" data-pick="debutant">→ secours « Débutant »</button>
+        <button class="btn" data-pick="keypad">→ ligne du pavé</button>
+      </div>
+    </div>
+    <div class="card"><h3>Tester une capture</h3><input type="file" id="upload" accept="image/*"><pre id="anaOut" class="mono small"></pre></div>
+  </section>
+
+  <section id="spots" class="tab">
+    <span class="eyebrow">Hitboxes sur mesure</span>
+    <h1>Emplacements</h1>
+    <div class="card">
+      <p id="spotsStatus" class="msg">Chargement…</p>
+      <div class="row">
+        <button class="btn violet" id="spotsCalib">Recalibrer (OCR agent)</button>
+        <button class="btn violet" id="spotsSave">Enregistrer</button>
+      </div>
+      <p class="hint">Images de référence dans <i>emplacements/</i> (game, fin_partie, niveaux). Chaque élément détecté est listé sous son image avec sa position X/Y et ses dimensions L/H (en % d'écran) — modifiables. Enregistré dans <i>data/spots.json</i> (local, hors git).</p>
+    </div>
+    <div id="spotsRefs"></div>
+  </section>
+</main>
+
+<div id="sheet" class="sheet"><div class="sheet-in">
+  <span class="eyebrow">Palier</span><h2 id="shTitle"></h2>
+  <label class="field">Durée d'appui min / max (ms)<span class="pair"><input id="shTap0" type="number"><input id="shTap1" type="number"></span></label>
+  <label class="field">Case → chiffre : moyenne / écart (ms)<span class="pair"><input id="shCk0" type="number"><input id="shCk1" type="number"></span></label>
+  <label class="field">Entre deux coups : moyenne / écart (ms)<span class="pair"><input id="shBt0" type="number"><input id="shBt1" type="number"></span></label>
+  <label class="field">Coups par capture (salve)<input id="shBatch" type="number" min="1"></label>
+  <label class="field">Facteur « réflexion »<input id="shThink" type="number" step="0.05" min="0" max="2"></label>
+  <div class="row"><button class="btn violet" id="shSave">Enregistrer</button><button class="btn" id="shClose">Fermer</button></div>
+</div></div>
+<div id="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>
